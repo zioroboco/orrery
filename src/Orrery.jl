@@ -88,6 +88,66 @@ end
 
 end #state
 
+begin #anomalies
+
+"""
+Mean anomaly (elliptic).
+"""
+function M(orbit::ClosedOrbit, Δt, μ)
+	-sqrt(μ / orbit.a^3) * Δt
+end
+
+"""
+Mean anomaly (hyperbolic).
+"""
+function M(orbit::OpenOrbit, Δt, μ)
+	-sqrt(μ / (-orbit.a)^3) * Δt
+end
+
+"""
+Eccentric anomaly.
+"""
+function EH(orbit::ClosedOrbit, M; Eₖ=M, ϵ=eps(Float32))
+	e = magnitude(orbit.ẽ)
+	Eₖ₊₁ = Eₖ - (M - Eₖ + e*sin(Eₖ)) / (e*cos(Eₖ) - 1)
+	if abs(M - Eₖ₊₁ + e*sin(Eₖ₊₁)) <= ϵ
+		Eₖ₊₁
+	else
+		EH(orbit, Mₕ, Hₖ=Hₖ₊₁, ϵ=ϵ)
+	end
+end
+
+"""
+Hyperbolic anomaly.
+"""
+function EH(orbit::OpenOrbit, Mₕ; Hₖ=Mₕ, ϵ=eps(Float32))
+	e = magnitude(orbit.ẽ)
+	Hₖ₊₁ = Hₖ + (Mₕ - e*sinh(Hₖ) + Hₖ) / (e*cosh(Hₖ) - 1)
+	if abs(Mₕ - e*sinh(Hₖ₊₁) + Hₖ₊₁) <= ϵ
+		Hₖ₊₁
+	else
+		EH(orbit, Mₕ, Hₖ=Hₖ₊₁, ϵ=ϵ)
+	end
+end
+
+"""
+True anomaly (elliptic).
+"""
+function f(orbit::ClosedOrbit, E)
+	e = magnitude(orbit.ẽ)
+	2 * atan(sqrt((1 + e) / (1 - e)) * tan(E / 2))
+end
+
+"""
+True anomaly (hyperbolic).
+"""
+function f(orbit::OpenOrbit, H)
+	e = magnitude(orbit.ẽ)
+	2 * atan(sqrt((e + 1) / (e - 1)) * tanh(H / 2))
+end
+
+end #anomalies
+
 begin #utilities
 
 @memoize Dict magnitude(ã) = norm(ã)
