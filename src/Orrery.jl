@@ -31,7 +31,7 @@ abstract type Orbit end
 Gravitationally significant massive body.
 """
 @kwdef struct Body
-	# TODO Model SOIs!
+	# TODO: Model SOIs!
 	orbit::Orbit # around parent body (or fixed)
 	μ::Gravitation
 end
