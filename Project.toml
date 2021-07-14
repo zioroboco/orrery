@@ -1,0 +1,13 @@
+name = "Orrery"
+uuid = "86442aa4-4df7-42b4-a7f3-bdf6a8c72b74"
+authors = ["Louis Quinnell <_@ziorobo.co> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
