@@ -3,6 +3,12 @@ uuid = "86442aa4-4df7-42b4-a7f3-bdf6a8c72b74"
 authors = ["Louis Quinnell <_@ziorobo.co> and contributors"]
 version = "0.1.0"
 
+[deps]
+GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Memoize = "c03570c3-d221-55d1-a50c-7939bbd78826"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
 [compat]
 julia = "1"
 
