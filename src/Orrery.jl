@@ -6,17 +6,17 @@ using Base: @kwdef
 using GeometryBasics: Vec2
 using LinearAlgebra: norm, normalize
 using Memoize: @memoize
-using Unitful: Quantity, FixedUnits, NoDims, 𝐋, 𝐓, km, s, rad
+using Unitful
 
 end #imports
 
 begin #units
 
 const Dimensionless = Float64
-const Anomaly = Quantity{Float64, NoDims, FixedUnits{(rad,), NoDims, nothing}}
-const Distance = Quantity{Float64, 𝐋, FixedUnits{(km,), 𝐋, nothing}}
-const Velocity = Quantity{Float64, 𝐋/𝐓, FixedUnits{(km/s), 𝐋/𝐓, nothing}}
-const Gravitation = Quantity{Float64, 𝐋^3/𝐓^2, FixedUnits{(km^3, s^-2), 𝐋^3/𝐓^2, nothing}}
+const Anomaly = typeof(1.0u"rad")
+const Distance = typeof(1.0u"km")
+const Velocity = typeof(1.0u"km/s")
+const Gravitation = typeof(1.0u"km^3/s^2")
 
 end #units
 
