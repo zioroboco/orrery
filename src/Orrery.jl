@@ -195,8 +195,7 @@ export
 	Velocity,
 	magnitude,
 	position,
-	propagate,
-	unit
+	propagate
 
 end #exports
 
