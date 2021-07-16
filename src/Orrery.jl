@@ -93,40 +93,42 @@ begin #anomalies
 """
 Mean anomaly (elliptic).
 """
-function M(orbit::ClosedOrbit, Δt, μ)
-	-sqrt(μ / orbit.a^3) * Δt
+function M(orbit::ClosedOrbit, Δt)
+	-sqrt(orbit.around.μ / orbit.a^3) * Δt
 end
 
 """
 Mean anomaly (hyperbolic).
 """
-function M(orbit::OpenOrbit, Δt, μ)
-	-sqrt(μ / (-orbit.a)^3) * Δt
+function M(orbit::OpenOrbit, Δt)
+	-sqrt(orbit.around.μ / (-orbit.a)^3) * Δt
 end
 
 """
 Eccentric anomaly.
 """
-function EH(orbit::ClosedOrbit, M; Eₖ=M, ϵ=eps(Float32))
+function E(orbit::ClosedOrbit, M; Eₖ=M, ϵ=eps(Float32))
 	e = magnitude(orbit.ẽ)
 	Eₖ₊₁ = Eₖ - (M - Eₖ + e*sin(Eₖ)) / (e*cos(Eₖ) - 1)
 	if abs(M - Eₖ₊₁ + e*sin(Eₖ₊₁)) <= ϵ
 		Eₖ₊₁
 	else
-		EH(orbit, Mₕ, Hₖ=Hₖ₊₁, ϵ=ϵ)
+		E(orbit, M, Eₖ=Eₖ₊₁, ϵ=ϵ)
 	end
 end
 
 """
 Hyperbolic anomaly.
+
+Uses the same name as eccentric anomaly to enable dispatching on the orbit.
 """
-function EH(orbit::OpenOrbit, Mₕ; Hₖ=Mₕ, ϵ=eps(Float32))
+function E(orbit::OpenOrbit, M; Hₖ=M, ϵ=eps(Float32))
 	e = magnitude(orbit.ẽ)
-	Hₖ₊₁ = Hₖ + (Mₕ - e*sinh(Hₖ) + Hₖ) / (e*cosh(Hₖ) - 1)
-	if abs(Mₕ - e*sinh(Hₖ₊₁) + Hₖ₊₁) <= ϵ
+	Hₖ₊₁ = Hₖ + (M - e*sinh(Hₖ) + Hₖ) / (e*cosh(Hₖ) - 1)
+	if abs(M - e*sinh(Hₖ₊₁) + Hₖ₊₁) <= ϵ
 		Hₖ₊₁
 	else
-		EH(orbit, Mₕ, Hₖ=Hₖ₊₁, ϵ=ϵ)
+		E(orbit, M, Hₖ=Hₖ₊₁, ϵ=ϵ)
 	end
 end
 
@@ -148,10 +150,19 @@ end
 
 end #anomalies
 
+begin #propagation
+
+function propagate(orbit::Orbit, Δt; ϵ=eps(Float32))
+	f(orbit, E(orbit, M(orbit, Δt), ϵ=ϵ)) * u"rad"
+end
+
+end #propagation
+
 begin #utilities
 
-@memoize Dict magnitude(ã) = norm(ã)
-@memoize Dict direction(ã) = normalize(ã)
+# Memoise using objectid, which checks hashed identity of objects (not values).
+@memoize magnitude(ã) = norm(ã)
+@memoize direction(ã) = normalize(ã)
 
 end #utilities
 
@@ -173,6 +184,7 @@ export
 	State,
 	Velocity,
 	magnitude,
+	propagate,
 	unit
 
 end #exports

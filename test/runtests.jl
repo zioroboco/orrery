@@ -1,26 +1,32 @@
 using GeometryBasics
 using Test
-using Unitful
+using Unitful, Unitful.DefaultSymbols
 
 include("../src/Orrery.jl")
-@testset "Orrery.jl" begin
 
-local earth::Orrery.Body = Orrery.Body(
-	μ=3.986004418e11u"km^3/s^2",
+earth = Orrery.Body(
+	μ=3.986004418e+14 * u"m^3/s^2",
 	orbit=Orrery.FixedOrbit(),
 )
 
-local moon:: Orrery.Body = Orrery.Body(
-	μ=4.9048695e9u"km^3/s^2",
+moon = Orrery.Body(
+	μ=4.9048695e+12 * u"m^3/s^2",
 	orbit=Orrery.ClosedOrbit(
-		a=1.0u"km",
-		ẽ=Vec2(0.0549, 0.),
+		a=384_748u"km",
+		ẽ=Vec2(0.0549006, 0.),
 		around=earth,
 	),
 )
+
+@testset "Orrery.jl" begin
 
 @test typeof(earth.orbit) == Orrery.FixedOrbit
 @test Orrery.magnitude(moon.orbit.ẽ) ≈ 0.0549 atol=0.0001
 @test Orrery.direction(moon.orbit.ẽ) == [1.0, 0.0]
 
-end;
+@test typeof(Orrery.propagate(moon.orbit, 60s)) == Orrery.Anomaly
+
+# TODO Investigate slight propagation error
+@test Orrery.propagate(moon.orbit, 27.322u"d", ϵ=1.0e-15) ≈ 0rad atol=0.05
+
+end #testset
