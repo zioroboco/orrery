@@ -156,6 +156,16 @@ function propagate(orbit::Orbit, Δt; ϵ=eps(Float32))
 	f(orbit, E(orbit, M(orbit, Δt), ϵ=ϵ)) * u"rad"
 end
 
+function position(state::CartesianState)
+	state.r̃
+end
+
+function position(state::GeometricState)::Vec2
+	e = Orrery.magnitude(state.orbit.ẽ)
+	r = -state.orbit.a * (1 - e^2) / (1 + e*cos(state.θ)) * u"km"
+	Vec2(r*cos(state.θ), r*sin(state.θ))
+end
+
 end #propagation
 
 begin #utilities
@@ -184,6 +194,7 @@ export
 	State,
 	Velocity,
 	magnitude,
+	position,
 	propagate,
 	unit
 
