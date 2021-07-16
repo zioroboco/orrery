@@ -40,6 +40,12 @@ moon = Orrery.Body(
 	),
 )
 
+satellite = Orrery.ClosedOrbit(
+	a = 50_000u"km",
+	ẽ = Vec2(0.25, 0.),
+	around=moon
+)
+
 end #bodies
 
 begin #observables
@@ -53,14 +59,22 @@ end
 
 moon_position = @lift(Orrery.position($moon_state))
 
+satellite_state = lift(t) do t
+	θ = Orrery.propagate(satellite, t)
+	Orrery.GeometricState(satellite, θ)
+end
+
+satellite_position = @lift(Orrery.position($satellite_state) + $moon_position)
+
 end #observables
 
 scene = Scene(scale_plot=true, show_axis=false)
 earth_marker = scatter!(scene, Vec2(0), color=:grey)
-moon_marker = scatter!(scene, @lift(ustrip.($moon_position/5e5)), color=:white)
+moon_marker = scatter!(scene, @lift(ustrip.($moon_position/6e5)), color=:grey)
+satellite_marker = scatter!(scene, @lift(ustrip.($satellite_position/6e5)), color=:grey)
 
-T = 27.322 * 24 * 60 * 60s
-Δt = 4 * 60 * 60s
+T = 2 * 27.322 * 24 * 60 * 60s
+Δt = 2 * 60 * 60s
 
 t[] = 0.0s
 
