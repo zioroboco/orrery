@@ -1,8 +1,14 @@
+begin #imports
+
+include("../src/Orrery.jl")
+import .Orrery
+
 using GeometryBasics
 using Test
 using Unitful, Unitful.DefaultSymbols
 
-include("../src/Orrery.jl")
+end #imports
+begin #fixtures
 
 earth = Orrery.Body(
 	μ=3.986004418e+14 * u"m^3/s^2",
@@ -17,6 +23,8 @@ moon = Orrery.Body(
 		around=earth,
 	),
 )
+
+end #imports
 
 @testset "Orrery.jl" begin
 

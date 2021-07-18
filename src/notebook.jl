@@ -1,104 +1,145 @@
-begin #imports
+begin # Imports
 
-include("Orrery.jl")
+	include("Orrery.jl")
+	import .Orrery
 
-using GLMakie
-using GeometryBasics
-using LinearAlgebra
-using Unitful, Unitful.DefaultSymbols
+	using GLMakie
+	using GeometryBasics
+	using LinearAlgebra
+	using Unitful
 
-end #imports
+end
 
-begin #theme
+begin # Scene
 
-marker_theme = Theme(
-	Scatter=(
-		markersize=20,
-		marker=:+,
-		color=:white,
+	marker_theme = Theme(
+		Scatter=(
+			markersize=20,
+			marker=:+,
+			color=:white,
+		)
 	)
-)
 
-text_theme = Theme(
-	Text=(
-		textsize=24,
-		color=:white,
-		align=(:left, :center),
+	text_theme = Theme(
+		Text=(
+			textsize=24,
+			color=:white,
+			align=(:left, :center),
+		)
 	)
-)
 
-update_theme!(theme_dark())
-update_theme!(marker_theme)
-update_theme!(text_theme)
+	update_theme!(theme_dark())
+	update_theme!(marker_theme)
+	update_theme!(text_theme)
 
-end #theme
+	t = Node(0.0u"s")
 
-begin #bodies
+	scene = Scene(scale_plot=true, show_axis=false, resolution=(800, 800))
 
-earth = Orrery.Body(
-	μ=3.986004418e+14 * u"m^3/s^2",
-	orbit=Orrery.FixedOrbit(),
-)
-
-moon = Orrery.Body(
-	μ=4.9048695e+12 * u"m^3/s^2",
-	orbit=Orrery.ClosedOrbit(
-		a=384_748u"km",
-		ẽ=Vec2(0.0549006, 0.),
-		around=earth,
-	),
-)
-
-satellite = Orrery.ClosedOrbit(
-	a = 50_000u"km",
-	ẽ = Vec2(0.25, 0.),
-	around=moon
-)
-
-end #bodies
-
-begin #observables
-
-t = Node(0.0s)
-
-moon_state = lift(t) do t
-	θ = Orrery.propagate(moon.orbit, t)
-	Orrery.GeometricState(moon.orbit, θ)
 end
 
-moon_position = @lift(Orrery.position($moon_state))
+begin # Entities
 
-moon_velocity = lift(moon_position) do r̃
-	a = ustrip(moon.orbit.a)
-	μ = ustrip(moon.orbit.around.μ)
-	r = ustrip(Orrery.magnitude(r̃))
-  sqrt(μ * (2/r - 1/a)) * u"km/s"
+	earth = Orrery.Body(
+		μ=3.986004418e+14 * u"m^3/s^2",
+		orbit=Orrery.FixedOrbit(),
+	)
+
+	moon = Orrery.Body(
+		μ=4.9048695e+12 * u"m^3/s^2",
+		orbit=Orrery.ClosedOrbit(
+			a=384_748u"km",
+			ẽ=Vec2(0.0549006, 0.),
+			around=earth,
+		),
+	)
+
+	satellite = Orrery.ClosedOrbit(
+		a = 50_000u"km",
+		ẽ = Vec2(0.25, 0.),
+		around=moon
+	)
+
+	particle_initial_state = Orrery.StateVectors(
+		Vec2(100_000u"km", 0.0u"km"),
+		Vec2(0.0u"km/s", 2.0u"km/s"),
+	)
+
+	return
 end
 
-satellite_state = lift(t) do t
-	θ = Orrery.propagate(satellite, t)
-	Orrery.GeometricState(satellite, θ)
+begin # Observables
+
+	function update(state::Orrery.StateVectors, Δt)::Orrery.StateVectors
+		ṽ = state.ṽ
+		r̃ = state.r̃
+		r̂ = Orrery.direction(r̃)
+		r = Orrery.magnitude(r̃)
+		ṽ′ = ṽ - r̂ * earth.μ / r^2 * Δt # TODO Fix hard coded parent body
+		r̃′ = r̃ + ṽ′ * Δt
+		Orrery.StateVectors(r̃′, ṽ′)
+	end
+
+	particle_state = lift(t) do t
+		if @isdefined(particle_state)
+			return update(particle_state[], Δt)
+		else
+			return particle_initial_state
+		end
+	end
+
+	particle_position = lift(t) do t
+		particle_state[].r̃
+	end
+
+	moon_state = lift(t) do t
+		θ = Orrery.propagate(moon.orbit, t)
+		Orrery.StateElements(moon.orbit, θ)
+	end
+
+	moon_position = @lift(Orrery.position($moon_state))
+
+	moon_velocity = lift(moon_position) do r̃
+		a = ustrip(moon.orbit.a)
+		μ = ustrip(moon.orbit.around.μ)
+		r = ustrip(Orrery.magnitude(r̃))
+		sqrt(μ * (2/r - 1/a)) * u"km/s"
+	end
+
+	satellite_state = lift(t) do t
+		θ = Orrery.propagate(satellite, t)
+		Orrery.StateElements(satellite, θ)
+	end
+
+	satellite_position = @lift(Orrery.position($satellite_state) + $moon_position)
+
+	return
 end
 
-satellite_position = @lift(Orrery.position($satellite_state) + $moon_position)
+begin # Markers
 
-end #observables
+	particle_marker = scatter!(scene, @lift(ustrip.($particle_position/6e5)), color=:orangered)
 
-scene = Scene(scale_plot=true, show_axis=false, resolution=(800, 800))
+	earth_marker = scatter!(scene, Vec2(0), color=:grey)
+	moon_marker = scatter!(scene, @lift(ustrip.($moon_position/6e5)), color=:white)
+	satellite_marker = scatter!(scene, @lift(ustrip.($satellite_position/6e5)), color=:grey)
 
-earth_marker = scatter!(scene, Vec2(0), color=:grey)
-moon_marker = scatter!(scene, @lift(ustrip.($moon_position/6e5)), color=:white)
-satellite_marker = scatter!(scene, @lift(ustrip.($satellite_position/6e5)), color=:grey)
+	moon_velocity_stats = text!(scene, @lift(string(round(u"km/s", $moon_velocity, digits=3))), position=Vec2(-0.9, 0.9))
+	elapsed_time_stats = text!(scene, @lift(string("$(ustrip(round(u"d", $t, digits=1))) days")), position=Vec2(-0.9, 0.8))
 
-moon_velocity_stats = text!(scene, @lift(string(round(u"km/s", $moon_velocity, digits=3))), position=Vec2(-0.9, 0.9))
-elapsed_time_stats = text!(scene, @lift(string("$(ustrip(round(u"d", $t, digits=1))) days")), position=Vec2(-0.9, 0.8))
+	return
+end
 
-T = 2 * 27.322 * 24 * 60 * 60s
-Δt = 2 * 60 * 60s
+begin # Run!
 
-t[] = 0.0s
+	T = 2 * 27.322 * 24 * 60 * 60u"s"
+	Δt = 2 * 60 * 60u"s"
 
-while t[] < T
-	t[] += Δt
-	sleep(1//30)
+	t[] = 0.0u"s"
+
+	while t[] < T
+		t[] += Δt
+		sleep(1//30)
+	end
+
 end
