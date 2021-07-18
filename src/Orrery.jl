@@ -171,6 +171,17 @@ begin # Propagation
 		Vec2(r*cos(state.θ), r*sin(state.θ))
 	end
 
+	function update(state::Orrery.StateVectors, Δt)::Orrery.StateVectors
+		ṽ = state.ṽ
+		r̃ = state.r̃
+		r̂ = Orrery.direction(r̃)
+		r = Orrery.magnitude(r̃)
+		# TODO Fix hard coded parent body
+		ṽ′ = ṽ - r̂ * earth.μ / r^2 * Δt
+		r̃′ = r̃ + ṽ′ * Δt
+		Orrery.StateVectors(r̃′, ṽ′)
+	end
+
 end
 
 begin # Utilities
@@ -200,7 +211,6 @@ export
 	magnitude,
 	position,
 	propagate,
-	switch_regime,
-	update_state_vectors
+	update
 
 end

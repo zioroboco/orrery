@@ -70,19 +70,9 @@ end
 
 begin # Observables
 
-	function update(state::Orrery.StateVectors, Δt)::Orrery.StateVectors
-		ṽ = state.ṽ
-		r̃ = state.r̃
-		r̂ = Orrery.direction(r̃)
-		r = Orrery.magnitude(r̃)
-		ṽ′ = ṽ - r̂ * earth.μ / r^2 * Δt # TODO Fix hard coded parent body
-		r̃′ = r̃ + ṽ′ * Δt
-		Orrery.StateVectors(r̃′, ṽ′)
-	end
-
 	particle_state = lift(t) do t
 		if @isdefined(particle_state)
-			return update(particle_state[], Δt)
+			return Orrery.update(particle_state[], Δt)
 		else
 			return particle_initial_state
 		end
