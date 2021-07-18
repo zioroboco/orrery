@@ -1,11 +1,13 @@
 module Orrery
 
 begin # Imports
+
 	using Base: @kwdef
 	using GeometryBasics: Vec2
 	using LinearAlgebra: norm, normalize
 	using Memoize: @memoize
 	using Unitful
+
 end
 
 begin # Units

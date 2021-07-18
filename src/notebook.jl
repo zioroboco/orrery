@@ -78,22 +78,9 @@ begin # Observables
 		end
 	end
 
-	particle_position = lift(t) do t
-		particle_state[].r̃
-	end
-
 	moon_state = lift(t) do t
 		θ = Orrery.propagate(moon.orbit, t)
 		Orrery.StateElements(moon.orbit, θ)
-	end
-
-	moon_position = @lift(Orrery.position($moon_state))
-
-	moon_velocity = lift(moon_position) do r̃
-		a = ustrip(moon.orbit.a)
-		μ = ustrip(moon.orbit.around.μ)
-		r = ustrip(Orrery.magnitude(r̃))
-		sqrt(μ * (2/r - 1/a)) * u"km/s"
 	end
 
 	satellite_state = lift(t) do t
@@ -101,7 +88,24 @@ begin # Observables
 		Orrery.StateElements(satellite, θ)
 	end
 
-	satellite_position = @lift(Orrery.position($satellite_state) + $moon_position)
+	particle_position = lift(t) do t
+		particle_state[].r̃
+	end
+
+	moon_position = lift(moon_state) do state
+		Orrery.position(state)
+	end
+
+	satellite_position = lift(satellite_state, moon_state) do s, m
+		Orrery.position(s) + Orrery.position(m)
+	end
+
+	moon_velocity = lift(moon_position) do r̃
+		a = ustrip(moon.orbit.a)
+		μ = ustrip(moon.orbit.around.μ)
+		r = ustrip(Orrery.magnitude(r̃))
+		sqrt(μ * (2/r - 1/a)) * u"km/s"
+	end
 
 	return
 end
