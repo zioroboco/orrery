@@ -72,7 +72,7 @@ begin # Observables
 
 	particle_state = lift(t) do t
 		if @isdefined(particle_state)
-			return Orrery.update(particle_state[], Δt)
+			return Orrery.update(particle_state[], Δt, around=earth)
 		else
 			return particle_initial_state
 		end
