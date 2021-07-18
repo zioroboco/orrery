@@ -12,29 +12,29 @@ end
 
 begin # Scene
 
-	marker_theme = Theme(
+	theme = Theme(
 		Scatter=(
 			markersize=20,
 			marker=:+,
 			color=:white,
-		)
-	)
-
-	text_theme = Theme(
+		),
 		Text=(
 			textsize=24,
 			color=:white,
-			align=(:left, :center),
-		)
+		),
 	)
 
 	update_theme!(theme_dark())
-	update_theme!(marker_theme)
-	update_theme!(text_theme)
+	update_theme!(theme)
 
 	t = Node(0.0u"s")
 
-	scene = Scene(scale_plot=true, show_axis=false, resolution=(800, 800))
+	scene = Scene(
+		scale_plot=true,
+		show_axis=false,
+		resolution=(800, 800),
+		limits=FRect(-1.0, -1.0, 2.0, 2.0)
+	)
 
 end
 
@@ -118,16 +118,17 @@ begin # Markers
 	moon_marker = scatter!(scene, @lift(ustrip.($moon_position/6e5)), color=:white)
 	satellite_marker = scatter!(scene, @lift(ustrip.($satellite_position/6e5)), color=:grey)
 
-	moon_velocity_stats = text!(scene, @lift(string(round(u"km/s", $moon_velocity, digits=3))), position=Vec2(-0.9, 0.9))
-	elapsed_time_stats = text!(scene, @lift(string("$(ustrip(round(u"d", $t, digits=1))) days")), position=Vec2(-0.9, 0.8))
+	moon_velocity_stats = text!(scene, @lift(string(round(u"km/s", $moon_velocity, digits=3))), position=Vec2(-0.9, 0.9), align=(:left, :center))
+	particle_velocity_stats = text!(scene, @lift(string(round(u"km/s", Orrery.magnitude($(particle_state).ṽ), digits=3))), position=Vec2(-0.9, 0.8), align=(:left, :center), color=:orangered)
+	elapsed_time_stats = text!(scene, @lift(string("$(ustrip(round(u"d", $t, digits=1))) days")), position=Vec2(0.9, -0.9), align=(:right, :center), color=:grey)
 
 	return
 end
 
 begin # Run!
 
-	T = 2 * 27.322 * 24 * 60 * 60u"s"
-	Δt = 2 * 60 * 60u"s"
+	T = 55 * 24 * 60 * 60u"s"
+	Δt = 60 * 60u"s"
 
 	t[] = 0.0u"s"
 
