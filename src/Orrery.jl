@@ -1,30 +1,21 @@
 module Orrery
 
 begin # Imports
-
 	using Base: @kwdef
 	using GeometryBasics: Vec2
 	using LinearAlgebra: norm, normalize
 	using Memoize: @memoize
 	using Unitful
-
 end
 
 begin # Units
-
-	const Dimensionless = Float64
 	const Anomaly = typeof(1.0u"rad")
 	const Distance = typeof(1.0u"km")
 	const Velocity = typeof(1.0u"km/s")
 	const Gravitation = typeof(1.0u"km^3/s^2")
-
 end
 
 begin # Orbit types
-
-	"""
-	Supertype of all concrete orbit types.
-	"""
 	abstract type Orbit end
 
 	"""
@@ -48,7 +39,7 @@ begin # Orbit types
 	"""
 	@kwdef struct OpenOrbit <: Orbit
 		a::Distance
-		ẽ::Vec2{Dimensionless}
+		ẽ::Vec2{Float64}
 		around::Body
 	end
 
@@ -57,11 +48,11 @@ begin # Orbit types
 	"""
 	@kwdef struct ClosedOrbit <: Orbit
 		a::Distance
-		ẽ::Vec2{Dimensionless}
+		ẽ::Vec2{Float64}
 		around::Body
 	end
 
-	function Orbit(a::Distance, ẽ::Vec2{Dimensionless}; around::Body)::Orbit
+	function Orbit(a::Distance, ẽ::Vec2{Float64}; around::Body)::Orbit
 		if magnitude(ẽ) > 1.0
 			OpenOrbit(a * -sign(a), ẽ, around)
 		else
@@ -71,32 +62,20 @@ begin # Orbit types
 end
 
 begin # State types
-
-	"""
-	Supertype of all concrete state types.
-	"""
 	abstract type State end
 
-	"""
-	State of a particle in a Newtonian regime.
-	"""
 	@kwdef struct StateVectors
 		r̃::Vec2{Distance}
 		ṽ::Vec2{Velocity}
 	end
 
-	"""
-	State of a particle in a Keplerian regime.
-	"""
 	@kwdef struct StateElements
 		orbit::Orbit
 		θ::Anomaly
 	end
-
 end
 
 begin # Anomalies
-
 	"""
 	Mean anomaly (elliptic).
 	"""
@@ -183,10 +162,6 @@ begin # Propagation
 		Orrery.StateVectors(r̃′, ṽ′)
 	end
 
-end
-
-begin # Utilities
-
 	# Memoise using objectid, which checks hashed identity of objects (not values).
 	@memoize magnitude(ã) = norm(ã)
 	@memoize direction(ã) = normalize(ã)
@@ -197,13 +172,11 @@ export
 	Anomaly,
 	Body,
 	ClosedOrbit,
-	Dimensionless,
 	Distance,
 	Elements,
 	FixedOrbit,
 	Gravitation,
 	OpenOrbit,
-	Orbit,
 	Orbit,
 	State,
 	StateElements,
