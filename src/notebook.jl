@@ -12,11 +12,11 @@ begin # Theme
 		Scatter=(
 			markersize=20,
 			marker=:+,
-			color=:white,
+			color=:grey,
 		),
 		Text=(
 			textsize=24,
-			color=:white,
+			color=:grey,
 		),
 	)
 	update_theme!(theme_dark())
@@ -84,37 +84,33 @@ begin # Observables
 	return
 end
 
+ZOOM = 5e5
+ZOOM_RECT = FRect(-1*ZOOM, -1*ZOOM, 2*ZOOM, 2*ZOOM)
+
 scene = Scene(
 	scale_plot=true,
 	show_axis=false,
 	resolution=(800, 800),
-	limits=FRect(-1.0, -1.0, 2.0, 2.0)
+	limits=ZOOM_RECT,
 )
 
 ## ---
 
-screenspace(v) = ustrip.(v)/6e5
+satellite_marker = scatter!(scene, @lift(ustrip.($satellite_position)))
+moon_marker = scatter!(scene, @lift(ustrip.($moon_position)))
+earth_marker = scatter!(scene, Vec2(0))
 
-r_sat = @lift(screenspace($satellite_position))
-
-satellite_marker = scatter!(scene, r_sat, color=:grey)
-
-plot = Node([r_sat[]])
-line = lines!(scene, plot)
-
-earth_marker = scatter!(scene, Vec2(0), color=:grey)
-moon_marker = scatter!(scene, @lift(screenspace($moon_position)), color=:white)
+update_cam!(scene, ZOOM_RECT)
 
 begin # Run!
 
-	T = 4 * 55 * 24 * 60 * 60u"s"
+	T = 55 * 24 * 60 * 60u"s"
 	Δt = 4 * 60 * 60u"s"
 
 	t[] = 0.0u"s"
 
 	while t[] < T
 		t[] += Δt
-		plot[] = push!(plot[], r_sat[])
 		sleep(1//30)
 	end
 
