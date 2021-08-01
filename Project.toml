@@ -10,6 +10,7 @@ GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Memoize = "c03570c3-d221-55d1-a50c-7939bbd78826"
+ReTest = "e0db7c4e-2690-44b9-bad6-7687da720f89"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]

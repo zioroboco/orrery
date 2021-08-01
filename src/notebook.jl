@@ -1,17 +1,13 @@
 begin # Imports
-
 	include("Orrery.jl")
 	import .Orrery
-
 	using GLMakie
 	using GeometryBasics
 	using LinearAlgebra
 	using Unitful
-
 end
 
-begin # Scene
-
+begin # Theme
 	theme = Theme(
 		Scatter=(
 			markersize=20,
@@ -23,19 +19,8 @@ begin # Scene
 			color=:white,
 		),
 	)
-
 	update_theme!(theme_dark())
 	update_theme!(theme)
-
-	t = Node(0.0u"s")
-
-	scene = Scene(
-		scale_plot=true,
-		show_axis=false,
-		resolution=(800, 800),
-		limits=FRect(-1.0, -1.0, 2.0, 2.0)
-	)
-
 end
 
 begin # Entities
@@ -55,14 +40,9 @@ begin # Entities
 	)
 
 	satellite = Orrery.ClosedOrbit(
-		a = 50_000u"km",
-		ẽ = Vec2(0.25, 0.),
+		a = 30_000u"km",
+		ẽ = Vec2(0.20, 0.),
 		around=moon
-	)
-
-	particle_initial_state = Orrery.StateVectors(
-		Vec2(100_000u"km", 0.0u"km"),
-		Vec2(0.0u"km/s", 2.0u"km/s"),
 	)
 
 	return
@@ -70,13 +50,7 @@ end
 
 begin # Observables
 
-	particle_state = lift(t) do t
-		if @isdefined(particle_state)
-			return Orrery.update(particle_state[], Δt, around=earth)
-		else
-			return particle_initial_state
-		end
-	end
+	t = Node(0.0u"s")
 
 	moon_state = lift(t) do t
 		θ = Orrery.propagate(moon.orbit, t)
@@ -110,30 +84,37 @@ begin # Observables
 	return
 end
 
-begin # Markers
+scene = Scene(
+	scale_plot=true,
+	show_axis=false,
+	resolution=(800, 800),
+	limits=FRect(-1.0, -1.0, 2.0, 2.0)
+)
 
-	particle_marker = scatter!(scene, @lift(ustrip.($particle_position/6e5)), color=:orangered)
+## ---
 
-	earth_marker = scatter!(scene, Vec2(0), color=:grey)
-	moon_marker = scatter!(scene, @lift(ustrip.($moon_position/6e5)), color=:white)
-	satellite_marker = scatter!(scene, @lift(ustrip.($satellite_position/6e5)), color=:grey)
+screenspace(v) = ustrip.(v)/6e5
 
-	moon_velocity_stats = text!(scene, @lift(string(round(u"km/s", $moon_velocity, digits=3))), position=Vec2(-0.9, 0.9), align=(:left, :center))
-	particle_velocity_stats = text!(scene, @lift(string(round(u"km/s", Orrery.magnitude($(particle_state).ṽ), digits=3))), position=Vec2(-0.9, 0.8), align=(:left, :center), color=:orangered)
-	elapsed_time_stats = text!(scene, @lift(string("$(ustrip(round(u"d", $t, digits=1))) days")), position=Vec2(0.9, -0.9), align=(:right, :center), color=:grey)
+r_sat = @lift(screenspace($satellite_position))
 
-	return
-end
+satellite_marker = scatter!(scene, r_sat, color=:grey)
+
+plot = Node([r_sat[]])
+line = lines!(scene, plot)
+
+earth_marker = scatter!(scene, Vec2(0), color=:grey)
+moon_marker = scatter!(scene, @lift(screenspace($moon_position)), color=:white)
 
 begin # Run!
 
-	T = 55 * 24 * 60 * 60u"s"
-	Δt = 60 * 60u"s"
+	T = 4 * 55 * 24 * 60 * 60u"s"
+	Δt = 4 * 60 * 60u"s"
 
 	t[] = 0.0u"s"
 
 	while t[] < T
 		t[] += Δt
+		plot[] = push!(plot[], r_sat[])
 		sleep(1//30)
 	end
 
