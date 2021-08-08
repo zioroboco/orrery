@@ -110,11 +110,12 @@ scene = Scene(
 
 ## ---
 
-moon_marker_rotated = scatter!(scene, @lift([ustrip.($moon_position_rotated)]))
+satellite_marker = scatter!(scene, @lift([ustrip.($satellite_position)]), color=:grey)
+moon_marker = scatter!(scene, @lift([ustrip.($moon_position_rotated)]))
 earth_marker = scatter!(scene, Vec2(0))
 
-plot = Node([ustrip.(moon_position_rotated[])])
-line = lines!(scene, @lift(ustrip.($plot)))
+moon_plot = Node([ustrip.(moon_position[])])
+moon_line = lines!(scene, @lift(ustrip.($plot)))
 
 draw_orbit!(scene, moon.orbit)
 
@@ -129,7 +130,7 @@ begin # Run!
 
 	while t[] < T
 		t[] += Δt
-		plot[] = push!(plot[], ustrip.(moon_position_rotated[]))
+		moon_plot[] = push!(moon_plot[], ustrip.(moon_position[]))
 		sleep(1//30)
 	end
 
