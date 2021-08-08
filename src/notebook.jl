@@ -62,10 +62,6 @@ begin # Observables
 		Orrery.StateElements(satellite, θ)
 	end
 
-	particle_position = lift(t) do t
-		particle_state[].r̃
-	end
-
 	moon_position = lift(moon_state) do state
 		Orrery.position(state)
 	end
@@ -79,6 +75,24 @@ begin # Observables
 		μ = ustrip(moon.orbit.around.μ)
 		r = ustrip(Orrery.magnitude(r̃))
 		sqrt(μ * (2/r - 1/a)) * u"km/s"
+	end
+
+	Rot(θ) = [
+		cos(θ) -sin(θ);
+		sin(θ)  cos(θ)
+	]
+
+	function draw_orbit!(scene::Scene, orbit::Orrery.Orbit)
+		θs = range(0*u"rad", stop=2π*u"rad", length=100)
+		r̃s = map(θᵢ -> Orrery.position(Orrery.StateElements(orbit, θᵢ)), θs)
+		θₑ = angle(orbit.ẽ[1] + orbit.ẽ[2]*im)
+		r̃ₑs = Vec2.(Rot.(θₑ + π) .* r̃s)
+		lines!(scene, ustrip.(r̃ₑs), color=:orangered)
+	end
+
+	moon_position_rotated = lift(moon_state, moon_position) do state, r̃
+		θₑ = angle(state.orbit.ẽ[1] + state.orbit.ẽ[2]*im)
+		Vec2(Rot(θₑ + π) * r̃)
 	end
 
 	return
@@ -96,9 +110,13 @@ scene = Scene(
 
 ## ---
 
-satellite_marker = scatter!(scene, @lift(ustrip.($satellite_position)))
-moon_marker = scatter!(scene, @lift(ustrip.($moon_position)))
+moon_marker_rotated = scatter!(scene, @lift([ustrip.($moon_position_rotated)]))
 earth_marker = scatter!(scene, Vec2(0))
+
+plot = Node([ustrip.(moon_position_rotated[])])
+line = lines!(scene, @lift(ustrip.($plot)))
+
+draw_orbit!(scene, moon.orbit)
 
 update_cam!(scene, ZOOM_RECT)
 
@@ -111,6 +129,7 @@ begin # Run!
 
 	while t[] < T
 		t[] += Δt
+		plot[] = push!(plot[], ustrip.(moon_position_rotated[]))
 		sleep(1//30)
 	end
 
