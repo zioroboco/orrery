@@ -12,11 +12,11 @@ begin # Theme
 		Scatter=(
 			markersize=20,
 			marker=:+,
-			color=:grey,
+			color=:white,
 		),
 		Text=(
 			textsize=24,
-			color=:grey,
+			color=:white,
 		),
 	)
 	update_theme!(theme_dark())
@@ -87,7 +87,7 @@ begin # Observables
 		r̃s = map(θᵢ -> Orrery.position(Orrery.StateElements(orbit, θᵢ)), θs)
 		θₑ = angle(orbit.ẽ[1] + orbit.ẽ[2]*im)
 		r̃ₑs = Vec2.(Rot.(θₑ + π) .* r̃s)
-		lines!(scene, ustrip.(r̃ₑs), color=:orangered)
+		lines!(scene, ustrip.(r̃ₑs), color=:grey)
 	end
 
 	moon_position_rotated = lift(moon_state, moon_position) do state, r̃
@@ -110,14 +110,11 @@ scene = Scene(
 
 ## ---
 
-satellite_marker = scatter!(scene, @lift([ustrip.($satellite_position)]), color=:grey)
+draw_orbit!(scene, moon.orbit)
+
+satellite_marker = scatter!(scene, @lift([ustrip.($satellite_position)]))
 moon_marker = scatter!(scene, @lift([ustrip.($moon_position_rotated)]))
 earth_marker = scatter!(scene, Vec2(0))
-
-moon_plot = Node([ustrip.(moon_position[])])
-moon_line = lines!(scene, @lift(ustrip.($plot)))
-
-draw_orbit!(scene, moon.orbit)
 
 update_cam!(scene, ZOOM_RECT)
 
@@ -130,7 +127,6 @@ begin # Run!
 
 	while t[] < T
 		t[] += Δt
-		moon_plot[] = push!(moon_plot[], ustrip.(moon_position[]))
 		sleep(1//30)
 	end
 
