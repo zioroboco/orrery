@@ -73,11 +73,10 @@ begin # Observables
 		Vec2(Rot(θ + π) * r̃)
 	end
 
-	satellite_position = lift(satellite_state, moon_state) do satellite_state, moon_state
-		r̃_moon = Orrery.position(moon_state)
-		r̃_satellite = r̃_moon + Orrery.position(satellite_state)
-		θ_moon = angle(moon_state.orbit.ẽ[1] + moon_state.orbit.ẽ[2]*im)
-		Vec2(Rot(θ_moon + π) * r̃_satellite)
+	satellite_position = lift(satellite_state, moon_position) do satellite_state, r̃_moon
+		r̃_satellite = Orrery.position(satellite_state)
+		θ = angle(satellite_state.orbit.ẽ[1] + satellite_state.orbit.ẽ[2]*im)
+		Vec2(Rot(θ + π) * r̃_satellite) + r̃_moon
 	end
 
 	moon_velocity = lift(moon_position) do r̃
