@@ -95,6 +95,11 @@ begin # Observables
 		Vec2(Rot(θₑ + π) * r̃)
 	end
 
+	satellite_position_rotated = lift(moon_state, satellite_position) do moon_state, satellite_position
+		θₑ = angle(moon_state.orbit.ẽ[1] + moon_state.orbit.ẽ[2]*im)
+		Vec2(Rot(θₑ + π) * satellite_position)
+	end
+
 	return
 end
 
@@ -112,7 +117,7 @@ scene = Scene(
 
 draw_orbit!(scene, moon.orbit)
 
-satellite_marker = scatter!(scene, @lift([ustrip.($satellite_position)]))
+satellite_marker = scatter!(scene, @lift([ustrip.($satellite_position_rotated)]))
 moon_marker = scatter!(scene, @lift([ustrip.($moon_position_rotated)]))
 earth_marker = scatter!(scene, Vec2(0))
 
