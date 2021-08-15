@@ -763,9 +763,9 @@ version = "0.4.1"
 
 [[ReTest]]
 deps = ["Distributed", "InlineTest", "Printf", "Random", "Sockets", "Test"]
-git-tree-sha1 = "dda09ad1c802e1fec6203b400d9887ea9b3dfca0"
+git-tree-sha1 = "478f8cb33e9d9176ee20356fb5623734b96e2fa0"
 uuid = "e0db7c4e-2690-44b9-bad6-7687da720f89"
-version = "0.3.0"
+version = "0.3.1"
 
 [[Reexport]]
 git-tree-sha1 = "5f6c21241f0f655da3952fd60aa18477cf96c220"
