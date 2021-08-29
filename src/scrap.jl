@@ -1,12 +1,8 @@
 using Base: @kwdef
+using Chain: @chain
 using Dictionaries
 using GLMakie
 using GeometryBasics
-
-@enum Body begin
-	Earth = 1
-	Moon
-end
 
 const Position = Point2{Float64}
 const Velocity = Vec2{Float64}
@@ -22,12 +18,34 @@ end
 	position::Position
 end
 
+@enum Body begin
+	Earth = 1
+	Moon
+end
+
 ledger = dictionary([
 	:situation => dictionary([
 		Earth => Stationary(position=[0.0, 0.0]),
 		Moon => StateVectors(position=[0.5, 0.0], velocity=[0.0, 0.5]),
 	]),
+	:parent => dictionary([
+		Moon => Earth,
+	]),
 ])
+
+function query(symbols)::Set{Body}
+	@chain begin
+		collect(symbols)
+		map(
+			body -> map(symbol -> all(body in keys(ledger[symbol])), _),
+			instances(Body),
+		)
+		reduce(hcat, _)
+		reduce(.&, eachrow(_))
+		instances(Body)[_]
+		Set(_)
+	end
+end
 
 scene = Scene(
 	scale_plot=true,
