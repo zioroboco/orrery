@@ -22,9 +22,11 @@ end
 	position::Position
 end
 
-world = dictionary([
- Earth => Stationary(position=[0.0, 0.0]),
- Moon => StateVectors(position=[0.5, 0.0], velocity=[0.0, 0.5]),
+ledger = dictionary([
+	:situation => dictionary([
+		Earth => Stationary(position=[0.0, 0.0]),
+		Moon => StateVectors(position=[0.5, 0.0], velocity=[0.0, 0.5]),
+	]),
 ])
 
 scene = Scene(
@@ -33,11 +35,11 @@ scene = Scene(
 	limits=FRect(-1, -1, 2, 2)
 )
 
-function get_position(situation::AbstractSituation)::Point2{Float64}
+function get_position(situation::AbstractSituation)::Position
 	return situation.position
 end
 
-positions = Node{Array{Position}}(map(get_position, collect(values(world))))
+positions = Node(map(get_position, collect(values(ledger[:situation]))))
 blips = scatter!(scene, positions)
 
 const Δt = 0.1
@@ -54,9 +56,9 @@ function update(vectors::StateVectors)
 end
 
 for t in 0:Δt:100.0
-	for (body::Body, situation::AbstractSituation) in pairs(world)
-		world[body] = update(situation)
+	for (body::Body, situation::AbstractSituation) in pairs(ledger[:situation])
+		ledger[:situation][body] = update(situation)
 	end
-	positions[] = map(s -> s.position, collect(values(world)))
+	positions[] = map(s -> s.position, collect(values(ledger[:situation])))
 	sleep(1/30)
 end
