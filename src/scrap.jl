@@ -22,18 +22,23 @@ end
 	position::Position
 end
 
+world = dictionary([
+ Earth => Stationary(position=[0.0, 0.0]),
+ Moon => StateVectors(position=[0.5, 0.0], velocity=[0.0, 0.5]),
+])
+
 scene = Scene(
 	scale_plot=true,
 	show_axis=false,
 	limits=FRect(-1, -1, 2, 2)
 )
 
-positions = Node{Array{Position}}(zeros(Vec2, length(instances(Body))))
-blips = scatter!(scene, positions)
+function get_position(situation::AbstractSituation)::Point2{Float64}
+	return situation.position
+end
 
-world = Dictionary{Body, AbstractSituation}()
-insert!(world, Earth, Stationary(position=[0.0, 0.0]))
-insert!(world, Moon, StateVectors(position=[0.5, 0.0], velocity=[0.0, 0.5]))
+positions = Node{Array{Position}}(map(get_position, collect(values(world))))
+blips = scatter!(scene, positions)
 
 const Δt = 0.1
 
