@@ -8,12 +8,22 @@ using LinearAlgebra
 magnitude = norm
 direction = normalize
 
+scene = Scene(
+	scale_plot=true,
+	show_axis=false,
+	theme=theme_dark(),
+	limits=FRect(-1, -1, 2, 2),
+)
+
 @enum Body begin
 	Earth = 1
 	Moon
 	Satellite
 	Comet
 end
+
+positions = Node(zeros(Point2{Float64}, length(instances(Body))))
+blips = scatter!(scene, positions, marker=:+, markersize=20, color=:ivory)
 
 @kwdef struct SOI
 	parent::Body
@@ -60,15 +70,6 @@ function query(symbols)::Vector{Body}
 		collect(_)
 	end
 end
-
-scene = Scene(
-	scale_plot=true,
-	show_axis=false,
-	limits=FRect(-1, -1, 2, 2)
-)
-
-positions = Node(zeros(Point2{Float64}, length(instances(Body))))
-blips = scatter!(scene, positions)
 
 positions[] = collect(values(ledger[:position]))
 
