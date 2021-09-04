@@ -161,14 +161,22 @@ function keplerian_update!(body::Body, t)
 	ledger[:position][body] = to_position(ledger[:elements][body])
 end
 
-function draw_orbit!(body::Body, scene::Scene)
-	elements = ledger[:elements][body]
+function draw_orbit!(scene::Scene, elements::Elements)
 	θs = range(0, stop=2π, length=100)
 	r̃s = map(θᵢ -> to_position(Elements(elements.a, elements.ẽ, θᵢ)), θs)
 	lines!(scene, r̃s)
 end
 
-draw_orbit!(Moon, scene)
+function to_elements(r̃, ṽ, μ)::Elements
+	r = magnitude(r̃)
+	v = magnitude(ṽ)
+	ẽ = (1/μ) * ((v^2 - (μ/r)) * r̃ - dot(r̃, ṽ) * ṽ)
+	Energy = v^2/2 - μ/r
+	a = -μ / (2 * Energy)
+	# FIXME true anomaly is being set correctly, but appears as if starting from 0
+	f = acos(dot(r̃, ẽ) / (r * magnitude(ẽ)))
+	return Elements(a, ẽ, f)
+end
 
 const Δt = 0.01
 
