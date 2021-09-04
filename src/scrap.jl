@@ -94,6 +94,14 @@ function newtonian_update!(body::Body, Δt)
 	ledger[:velocity][body] = ṽ′
 end
 
+function to_position(elements::Elements)::Vec2{Float64}
+	R(θ) = [cos(θ) -sin(θ); sin(θ)  cos(θ)]
+	e = magnitude(elements.ẽ)
+	r = -elements.a * (1 - e^2) / (1 + e*cos(elements.f))
+	θₑ = angle(elements.ẽ[1] + elements.ẽ[2]*im) + π
+	R(θₑ) * Vec2(r*cos(elements.f), r*sin(elements.f))
+end
+
 function keplerian_update!(body::Body, t)
 	function Mₑ(elements::Elements, soi::SOI, t)
 		-sqrt(soi.μ / elements.a^3) * t
@@ -141,18 +149,6 @@ function keplerian_update!(body::Body, t)
 		end
 	end
 
-	Rot(θ) = [
-		cos(θ) -sin(θ);
-		sin(θ)  cos(θ)
-	]
-
-	function to_position(elements::Elements)::Vec2{Float64}
-		e = magnitude(elements.ẽ)
-		r = -elements.a * (1 - e^2) / (1 + e*cos(elements.f))
-		θₑ = angle(elements.ẽ[1] + elements.ẽ[2]*im) + π
-		Rot(θₑ) * Vec2(r*cos(elements.f), r*sin(elements.f))
-	end
-
 	elements = ledger[:elements][body]
 	soi = ledger[:soi][body]
 
@@ -164,6 +160,15 @@ function keplerian_update!(body::Body, t)
 
 	ledger[:position][body] = to_position(ledger[:elements][body])
 end
+
+function draw_orbit!(body::Body, scene::Scene)
+	elements = ledger[:elements][body]
+	θs = range(0, stop=2π, length=100)
+	r̃s = map(θᵢ -> to_position(Elements(elements.a, elements.ẽ, θᵢ)), θs)
+	lines!(scene, r̃s)
+end
+
+draw_orbit!(Moon, scene)
 
 const Δt = 0.01
 
