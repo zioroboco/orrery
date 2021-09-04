@@ -8,10 +8,11 @@ using LinearAlgebra
 magnitude = norm
 direction = normalize
 
+set_theme!(theme_dark())
+
 scene = Scene(
 	scale_plot=true,
 	show_axis=false,
-	theme=theme_dark(),
 	limits=FRect(-1, -1, 2, 2),
 )
 
@@ -24,6 +25,9 @@ end
 
 positions = Node(zeros(Point2{Float64}, length(instances(Body))))
 blips = scatter!(scene, positions, marker=:+, markersize=20, color=:ivory)
+
+stats_content = Node("...")
+stats = text!(scene, stats_content, position=Point2([0.0, 0.8]), color=:ivory, align=(:center, :center))
 
 @kwdef struct SOI
 	parent::Body
@@ -73,9 +77,7 @@ end
 
 positions[] = collect(values(ledger[:position]))
 
-const Δt = 0.01
-
-function newtonian_update!(body::Body)
+function newtonian_update!(body::Body, Δt)
 	r̃ = ledger[:position][body]
 	ṽ = ledger[:velocity][body]
 
@@ -157,8 +159,11 @@ function keplerian_update!(body::Body, t)
 	ledger[:position][body] = to_position(ledger[:elements][body])
 end
 
-for t in -5.0:Δt:5.0
-	foreach(body -> newtonian_update!(body), query([:position, :velocity, :soi]))
+const Δt = 0.01
+
+for t in 0.0:Δt:5.0
+	stats_content[] = join(["t=$(t)s", "Δt=$(Δt)s"], "\n")
+	foreach(body -> newtonian_update!(body, Δt), query([:position, :velocity, :soi]))
 	foreach(body -> keplerian_update!(body, t), query([:position, :elements, :soi]))
 	positions[] = collect(values(ledger[:position]))
 	sleep(1/30)
