@@ -141,10 +141,16 @@ function keplerian_update!(body::Body, t)
 		end
 	end
 
+	Rot(θ) = [
+		cos(θ) -sin(θ);
+		sin(θ)  cos(θ)
+	]
+
 	function to_position(elements::Elements)::Vec2{Float64}
 		e = magnitude(elements.ẽ)
 		r = -elements.a * (1 - e^2) / (1 + e*cos(elements.f))
-		Vec2(r*cos(elements.f), r*sin(elements.f))
+		θₑ = angle(elements.ẽ[1] + elements.ẽ[2]*im) + π
+		Rot(θₑ) * Vec2(r*cos(elements.f), r*sin(elements.f))
 	end
 
 	elements = ledger[:elements][body]
