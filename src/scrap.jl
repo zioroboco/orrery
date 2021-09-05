@@ -10,6 +10,8 @@ direction = normalize
 
 set_theme!(theme_dark())
 
+const SCALE = 1e-9
+
 scene = Scene(
 	scale_plot=true,
 	show_axis=false,
@@ -19,8 +21,6 @@ scene = Scene(
 @enum Body begin
 	Earth = 1
 	Moon
-	Satellite
-	Comet
 end
 
 positions = Node(zeros(Point2{Float64}, length(instances(Body))))
@@ -43,25 +43,19 @@ end
 ledger = dictionary([
 	:position => dictionary([
 		Earth => Point2([0.0, 0.0]),
-		Moon => Point2([0.0, 0.75]),
-		Satellite => Point2([-0.5, 0.0]),
-		Comet => Point2([0.25, 0.25]),
+		Moon => Point2([0.0, 0.0]),
 	]),
 	:velocity => dictionary([
-		Satellite => Point2([0.0, -1.0]),
 	]),
 	:elements => dictionary([
-		Moon => Elements(a=1.0, ẽ=Vec2(0.1, 0.0), f=0.0),
-		Comet => Elements(a=0.05, ẽ=Vec2(2.5, 2.5), f=0.0),
+		Moon => Elements(a=3.84748e+8, ẽ=Vec2(0.0549006, 0.0), f=0),
 	]),
 	:soi => dictionary([
-		Moon => SOI(parent=Earth, μ=1.0),
-		Satellite => SOI(parent=Earth, μ=1.0),
-		Comet => SOI(parent=Earth, μ=1.0),
+		Moon => SOI(parent=Earth, μ=3.986004418e+14),
 	]),
 ])
 
-function query(symbols)::Vector{Body}
+function query(ledger, symbols)::Vector{Body}
 	@chain begin
 		collect(symbols)
 		map(
@@ -77,47 +71,45 @@ end
 
 positions[] = collect(values(ledger[:position]))
 
-function newtonian_update!(body::Body, Δt)
+function newtonian_update!(ledger, body::Body, Δt)
 	r̃ = ledger[:position][body]
 	ṽ = ledger[:velocity][body]
-
 	r̃ₚ = r̃ - ledger[:position][ledger[:soi][body].parent]
 	μₚ = ledger[:soi][body].μ
-
 	rₚ = magnitude(r̃ₚ)
 	r̂ₚ = direction(r̃ₚ)
-
 	ṽ′ = ṽ - r̂ₚ * μₚ / rₚ^2 * Δt
 	r̃′ = r̃ + ṽ′ * Δt
-
 	ledger[:position][body] = r̃′
 	ledger[:velocity][body] = ṽ′
 end
 
+Rot(θ) = [cos(θ) -sin(θ); sin(θ)  cos(θ)]
+radial(a, e, f) = a * (1 - e^2) / (1 + e*cos(f))
+
 function to_position(elements::Elements)::Vec2{Float64}
-	R(θ) = [cos(θ) -sin(θ); sin(θ)  cos(θ)]
-	e = magnitude(elements.ẽ)
-	r = elements.a * (1 - e^2) / (1 + e*cos(elements.f))
+	r = radial(elements.a, magnitude(elements.ẽ), elements.f)
 	θₑ = angle(elements.ẽ[1] + elements.ẽ[2]*im)
-	R(θₑ) * Vec2(r*cos(elements.f), r*sin(elements.f))
+	Rot(θₑ) * Vec2(r * cos(elements.f), r * sin(elements.f))
 end
 
-function keplerian_update!(body::Body, t)
+function keplerian_update!(ledger, body::Body, t)
 	function Mₑ(elements::Elements, soi::SOI, t)
-		-sqrt(soi.μ / elements.a^3) * t
+		-sqrt(soi.μ / elements.a^3) * t # FIXME t=0 => M=0
 	end
 
 	function Mₕ(elements::Elements, soi::SOI, t)
-		-sqrt(soi.μ / (elements.a)^3) * t
+		# TODO Why not (-a)³ in Mₕ?
+		-sqrt(soi.μ / elements.a^3) * t
 	end
 
-	function E(elements::Elements, M; Eₖ=M, ϵ=eps(Float32))
+	function E(elements::Elements, Mₑ; Eₖ=Mₑ, ϵ=eps(Float32))
 		e = magnitude(elements.ẽ)
-		Eₖ₊₁ = Eₖ - (M - Eₖ + e*sin(Eₖ)) / (e*cos(Eₖ) - 1)
-		if abs(M - Eₖ₊₁ + e*sin(Eₖ₊₁)) <= ϵ
+		Eₖ₊₁ = Eₖ - (Mₑ - Eₖ + e*sin(Eₖ)) / (e*cos(Eₖ) - 1)
+		if abs(Mₑ - Eₖ₊₁ + e*sin(Eₖ₊₁)) <= ϵ
 			Eₖ₊₁
 		else
-			E(elements, M, Eₖ=Eₖ₊₁, ϵ=ϵ)
+			E(elements, Mₑ, Eₖ=Eₖ₊₁, ϵ=ϵ)
 		end
 	end
 
@@ -164,7 +156,7 @@ end
 function draw_orbit!(scene::Scene, elements::Elements)
 	θs = range(0, stop=2π, length=100)
 	r̃s = map(θᵢ -> to_position(Elements(elements.a, elements.ẽ, θᵢ)), θs)
-	lines!(scene, r̃s)
+	lines!(scene, r̃s .* SCALE, color=:grey)
 end
 
 function to_elements(r̃, ṽ, μ)::Elements
@@ -173,17 +165,36 @@ function to_elements(r̃, ṽ, μ)::Elements
 	ẽ = (1/μ) * ((v^2 - (μ/r)) * r̃ - dot(r̃, ṽ) * ṽ)
 	Energy = v^2/2 - μ/r
 	a = -μ / (2 * Energy)
-	# FIXME true anomaly is being set correctly, but appears as if starting from 0
 	f = acos(dot(r̃, ẽ) / (r * magnitude(ẽ)))
 	return Elements(a, ẽ, f)
 end
 
-const Δt = 0.01
-
-for t in 0.0:Δt:5.0
-	stats_content[] = join(["t=$(t)s", "Δt=$(Δt)s"], "\n")
-	foreach(body -> newtonian_update!(body, Δt), query([:position, :velocity, :soi]))
-	foreach(body -> keplerian_update!(body, t), query([:position, :elements, :soi]))
-	positions[] = collect(values(ledger[:position]))
-	sleep(1/30)
+function v²(elements::Elements, soi::SOI)
+	r = radial(elements.a, magnitude(elements.ẽ), elements.f)
+	return soi.μ * (2/r - 1/elements.a)
 end
+
+function main(ledger)
+	Δt = 60*60*2
+	for t in 0.0:Δt:60*60*24*27.322
+		stats_content[] = join([
+			"t = $(round(t/60/60/24, digits=1)) days",
+			"v = $(round(sqrt(v²(ledger[:elements][Moon], ledger[:soi][Moon])), digits=1)) m/s"
+		], "\n")
+		foreach(body -> newtonian_update!(ledger, body, Δt), query(ledger, [:position, :velocity, :soi]))
+		foreach(body -> keplerian_update!(ledger, body, t), query(ledger, [:position, :elements, :soi]))
+		positions[] = collect(values(ledger[:position])) * SCALE
+		sleep(1/30)
+	end
+end
+
+## ---
+
+# Run the simulation
+main(deepcopy(ledger))
+
+# Draw the orbit
+draw_orbit!(scene, ledger[:elements][Moon])
+
+# Clear last drawn orbit
+pop!(scene.plots); scene
