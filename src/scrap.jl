@@ -5,8 +5,8 @@ using GLMakie
 using GeometryBasics
 using LinearAlgebra
 
-magnitude = norm
-direction = normalize
+const magnitude = norm
+const direction = normalize
 
 set_theme!(theme_dark())
 
@@ -179,7 +179,9 @@ function main(ledger)
 	for t in 0.0:Δt:60*60*24*27.322
 		stats_content[] = join([
 			"t = $(round(t/60/60/24, digits=1)) days",
-			"v = $(round(sqrt(v²(ledger[:elements][Moon], ledger[:soi][Moon])), digits=1)) m/s"
+			"v = $(round(sqrt(v²(ledger[:elements][Moon], ledger[:soi][Moon])), digits=1)) m/s",
+			"\n",
+			"[ $(Moon in keys(ledger[:elements]) ? "Keplerian" : "Newtonian") ]"
 		], "\n")
 		foreach(body -> newtonian_update!(ledger, body, Δt), query(ledger, [:position, :velocity, :soi]))
 		foreach(body -> keplerian_update!(ledger, body, t), query(ledger, [:position, :elements, :soi]))
