@@ -21,6 +21,7 @@ scene = Scene(
 @enum Body begin
 	Earth = 1
 	Moon
+  Satellite
 end
 
 positions = Node(zeros(Point2{Float64}, length(instances(Body))))
@@ -44,14 +45,17 @@ ledger = dictionary([
 	:position => dictionary([
 		Earth => Point2([0.0, 0.0]),
 		Moon => Point2([0.0, 0.0]),
+		Satellite => Point2([2.0e8, 0.0]),
 	]),
 	:velocity => dictionary([
+    Satellite => Vec2([0.0, 1.0e3]),
 	]),
 	:elements => dictionary([
 		Moon => Elements(a=3.84748e+8, ẽ=Vec2(0.0549006, 0.0), f=0),
 	]),
 	:soi => dictionary([
 		Moon => SOI(parent=Earth, μ=3.986004418e+14),
+		Satellite => SOI(parent=Earth, μ=3.986004418e+14),
 	]),
 ])
 
@@ -174,14 +178,25 @@ function v²(elements::Elements, soi::SOI)
 	return soi.μ * (2/r - 1/elements.a)
 end
 
+function v_display(ledger, body::Body)::String
+	v = (
+		body in keys(ledger[:elements])
+			? sqrt(v²(ledger[:elements][body], ledger[:soi][body]))
+			:	magnitude(ledger[:velocity][body])
+	)
+	return "$(round(v)) m/s"
+end
+
 function main(ledger)
 	Δt = 60*60*2
 	for t in 0.0:Δt:60*60*24*27.322
 		stats_content[] = join([
 			"t = $(round(t/60/60/24, digits=1)) days",
-			"v = $(round(sqrt(v²(ledger[:elements][Moon], ledger[:soi][Moon])), digits=1)) m/s",
 			"\n",
-			"[ $(Moon in keys(ledger[:elements]) ? "Keplerian" : "Newtonian") ]"
+			"v_moon = $(v_display(ledger, Moon))",
+			"v_satellite = $(v_display(ledger, Satellite))",
+			"\n",
+			"Regime: $(Satellite in keys(ledger[:elements]) ? "Keplerian" : "Newtonian")"
 		], "\n")
 		foreach(body -> newtonian_update!(ledger, body, Δt), query(ledger, [:position, :velocity, :soi]))
 		foreach(body -> keplerian_update!(ledger, body, t), query(ledger, [:position, :elements, :soi]))
