@@ -73,6 +73,8 @@ function query(ledger, symbols)::Vector{Body}
 	end
 end
 
+query(f::Function, symbols) = map(f, query(ledger, symbols))
+
 positions[] = collect(values(ledger[:position]))
 
 function newtonian_update!(ledger, body::Body, Δt)
@@ -198,8 +200,15 @@ function main(ledger)
 			"\n",
 			"Regime: $(Satellite in keys(ledger[:elements]) ? "Keplerian" : "Newtonian")"
 		], "\n")
-		foreach(body -> newtonian_update!(ledger, body, Δt), query(ledger, [:position, :velocity, :soi]))
-		foreach(body -> keplerian_update!(ledger, body, t), query(ledger, [:position, :elements, :soi]))
+
+		query([:position, :velocity]) do body
+			newtonian_update!(ledger, body, Δt)
+		end
+
+		query([:position, :elements]) do body
+			keplerian_update!(ledger, body, t)
+		end
+
 		positions[] = collect(values(ledger[:position])) * SCALE
 		sleep(1/30)
 	end
